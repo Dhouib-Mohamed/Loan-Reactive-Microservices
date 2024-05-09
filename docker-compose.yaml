@@ -1,0 +1,99 @@
+services:
+  commercial:
+    build:
+      context: commercial
+      dockerfile: Dockerfile
+    container_name: commercial
+    hostname: commercial
+    pull_policy: build
+    networks:
+      - reactive-micro
+    depends_on:
+      - loan-management
+      - ocr-extraction
+
+  loan-management:
+    build:
+      context: loan-management
+      dockerfile: Dockerfile
+    container_name: loan-management
+    hostname: loan-management*
+    pull_policy: build
+    networks:
+      - reactive-micro
+    depends_on:
+      - kafka
+      - notification
+
+  notification:
+    build:
+      context: notification
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    container_name: notification
+    pull_policy: build
+    hostname: notification
+    networks:
+      - reactive-micro
+
+  ocr-extraction:
+    build:
+      context: ocr-extraction
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    container_name: ocr-extraction
+    hostname: ocr-extraction
+    pull_policy: build
+    networks:
+      - reactive-micro
+
+  risk-assessment:
+    build:
+      context: risk-assessment
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    container_name: risk-assessment
+    hostname: risk-assessment
+    pull_policy: build
+    networks:
+      - reactive-micro
+    depends_on:
+      - commercial
+      - ocr-extraction
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.4
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+    container_name: zookeeper
+    hostname: zookeeper
+    networks:
+      - reactive-micro
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.4
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    container_name: kafka
+    hostname: kafka
+    networks:
+      - reactive-micro
+
+networks:
+  reactive-micro:
+    driver: bridge
