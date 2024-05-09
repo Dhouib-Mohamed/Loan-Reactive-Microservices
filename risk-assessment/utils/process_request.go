@@ -35,5 +35,6 @@ func ProcessRequest(bytes_i []byte) {
 }
 func validate(r *http.Response) bool {
 	// Validate Response
+	// request validation from the central bank
 	return true
 }
